@@ -1,0 +1,22 @@
+<VirtualHost *:80>
+        ServerAdmin webmaster@example.com
+
+        ServerName replacevhost.replacedomain
+        DocumentRoot /var/www/replacevhost.replacedomain/html
+        <Directory />
+                Options FollowSymLinks
+                AllowOverride None
+        </Directory>
+        <Directory /var/www/replacevhost.replacedomain/html>
+                Options All MultiViews ExecCGI
+                AllowOverride all
+                Order allow,deny
+                allow from all
+        </Directory>
+
+        ErrorLog ${APACHE_LOG_DIR}/replacevhost.replacedomain.error.log
+        # Possible values include: debug, info, notice, warn, error, crit,
+        # alert, emerg.
+        LogLevel warn
+        CustomLog ${APACHE_LOG_DIR}/replacevhost.replacedomain.access.log combined
+</VirtualHost>

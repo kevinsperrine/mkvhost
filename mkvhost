@@ -1,0 +1,87 @@
+#!/bin/bash
+
+replacevhost=$2;
+replacedomain=$1;
+ava="/etc/apache2/sites-available";
+ena="/etc/apache2/sites-enabled";
+
+if [[ ${replacedomain} == "" ]]; then
+    echo "Usage: mkvhost <replacevhost> <replacedomain>";
+    echo "Example: mkvhost example.com";
+    echo "         will create the virtual host for example.com";
+    echo "Example: mkvhost example.com www";
+    echo "         will create the virtual host www.example.com";
+    exit 0;
+elif [[ ${replacevhost} == "" ]]; then
+    vhost="${replacedomain}";
+else
+    vhost="${replacevhost}.${replacedomain}";
+fi
+
+# Create http host
+if [[ -e ${ava}/${vhost} ]]; then
+    echo "${ava}/${vhost} already exists. Skipping.";
+elif [[ -e ${ena}/${vhost} ]]; then
+    echo "${ena}/${vhost} already exists. Skipping.";
+else
+    if [[ ! -e ${ava}/template.http ]]; then
+        echo "${ava}/template.http does not exist. Cannot create ${ena}/${vhost}.";
+    elif [[ ${replacevhost} == "" ]]; then
+        cat ${ava}/template.http | sed "s/replacevhost./${replacevhost}/g" | sed "s/replacedomain/${replacedomain}/g" > ${ava}/${vhost}
+    else
+        cat ${ava}/template.http | sed "s/replacevhost/${replacevhost}/g" | sed "s/replacedomain/${replacedomain}/g" > ${ava}/${vhost}
+    fi
+fi
+
+bool="n";
+echo -n "Should I enable ${ava}/${vhost}? ";
+read bool;
+if [[ ${bool} == "y" || ${bool} == "Y" || ${bool} == "yes" || ${bool} == "YES" || ${bool} == "Yes" ]]; then
+    if [[ -e ${ena}/${vhost} ]]; then
+        echo "Host was already enabled.";
+    else
+        if [[ ! -e ${ava}/${vhost} ]]; then
+            echo "${ava}/${vhost} does not exist so I cannot enable it.";
+        else
+            echo "Running: cp ${ava}/${vhost} ${ena}/${vhost}";
+            cp ${ava}/${vhost} ${ena}/${vhost};
+        fi
+    fi
+fi
+
+bool="n";
+echo -n "Should I create the skeleton folder structure /var/www/${vhost}/{htdocs,logs,tmp} for you? ";
+read bool;
+if [[ ${bool} == "y" || ${bool} == "Y" || ${bool} == "yes" || ${bool} == "YES" || ${bool} == "Yes" ]]; then
+    if [[ -e /var/www/${vhost}/html ]]; then
+        echo "/var/www/${vhost}/html already exists.";
+    elif [[ -e /var/www/${vhost}/logs ]]; then
+		echo "/var/www/${vhost}/logs already exists.";
+    elif [[ -e /var/www/${vhost}/tmp ]]; then
+		echo "/var/www/${vhost}/tmp already exists.";
+    else
+        mkdir -p /var/www/${vhost}/{html,logs,tmp};
+        chown -R kevin:www-data /var/www/${vhost};
+        chmod -R 755 /var/www/${vhost};
+    fi
+else
+    mkdir -p /var/www/${vhost}/html;
+    chown -R kevin:www-data /var/www/${vhost};
+    chmod -R 755 /var/www/${vhost};
+fi
+
+bool="n";
+echo -n "Should I restart Apache? ";
+read bool;
+if [[ ${bool} == "y" || ${bool} == "Y" || ${bool} == "yes" || ${bool} == "YES" || ${bool} == "Yes" ]]; then
+    echo "Running: service apache2 restart";
+    service apache2 restart;
+fi
+
+bool="n"
+echo -n "Should I add an entry to the hosts file? ";
+read bool;
+if [[ ${bool} == "y" || ${bool} == "Y" || ${bool} == "yes" || ${bool} == "YES" || ${bool} == "Yes" ]]; then
+    echo "# ${vhost}
+127.0.0.1	${vhost}" >> /etc/hosts
+fi
