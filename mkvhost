@@ -33,6 +33,21 @@ else
     fi
 fi
 
+# Create https host
+if [[ -e ${ava}/${vhost}-ssl ]]; then
+    echo "${ava}/${vhost}-ssl already exists. Skipping.";
+elif [[ -e ${ena}/${vhost}-ssl ]]; then
+    echo "${ena}/${vhost}-ssl already exists. Skipping.";
+else
+    if [[ ! -e ${ava}/template.https ]]; then
+        echo "${ava}/template.https does not exist. Cannot create ${ena}/${vhost}-ssl.";
+    elif [[ ${replacevhost} == "" ]]; then
+        cat ${ava}/template.https | sed "s/replacevhost./${replacevhost}/g" | sed "s/replacedomain/${replacedomain}/g" > ${ava}/${vhost}-ssl
+    else
+        cat ${ava}/template.https | sed "s/replacevhost/${replacevhost}/g" | sed "s/replacedomain/${replacedomain}/g" > ${ava}/${vhost}-ssl
+    fi
+fi
+
 bool="n";
 echo -n "Should I enable ${ava}/${vhost}? ";
 read bool;
@@ -43,24 +58,40 @@ if [[ ${bool} == "y" || ${bool} == "Y" || ${bool} == "yes" || ${bool} == "YES" |
         if [[ ! -e ${ava}/${vhost} ]]; then
             echo "${ava}/${vhost} does not exist so I cannot enable it.";
         else
-            echo "Running: cp ${ava}/${vhost} ${ena}/${vhost}";
-            cp ${ava}/${vhost} ${ena}/${vhost};
+            echo "Running: ln -s ${ava}/${vhost} ${ena}/${vhost}";
+            ln -s ${ava}/${vhost} ${ena}/${vhost};
         fi
     fi
 fi
 
 bool="n";
-echo -n "Should I create the skeleton folder structure /var/www/${vhost}/{htdocs,logs,tmp} for you? ";
+echo -n "Should I enable ${ava}/${vhost}-ssl? ";
 read bool;
 if [[ ${bool} == "y" || ${bool} == "Y" || ${bool} == "yes" || ${bool} == "YES" || ${bool} == "Yes" ]]; then
-    if [[ -e /var/www/${vhost}/html ]]; then
-        echo "/var/www/${vhost}/html already exists.";
+    if [[ -e ${ena}/${vhost}-ssl ]]; then
+        echo "Host was already enabled.";
+    else
+        if [[ ! -e ${ava}/${vhost}-ssl ]]; then
+            echo "${ava}/${vhost}-ssl does not exist so I cannot enable it.";
+        else
+            echo "Running: ln -s ${ava}/${vhost}-ssl ${ena}/${vhost}-ssl";
+            ln -s ${ava}/${vhost}-ssl ${ena}/${vhost}-ssl;
+        fi
+    fi
+fi
+
+bool="n";
+echo -n "Should I create the skeleton folder structure /var/www/${vhost}/{httpdocs,logs,tmp} for you? ";
+read bool;
+if [[ ${bool} == "y" || ${bool} == "Y" || ${bool} == "yes" || ${bool} == "YES" || ${bool} == "Yes" ]]; then
+    if [[ -e /var/www/${vhost}/httpdocs ]]; then
+        echo "/var/www/${vhost}/httpdocs already exists.";
     elif [[ -e /var/www/${vhost}/logs ]]; then
 		echo "/var/www/${vhost}/logs already exists.";
     elif [[ -e /var/www/${vhost}/tmp ]]; then
 		echo "/var/www/${vhost}/tmp already exists.";
     else
-        mkdir -p /var/www/${vhost}/{html,logs,tmp};
+        mkdir -p /var/www/${vhost}/{httpdocs,logs,tmp};
         chown -R kevin:www-data /var/www/${vhost};
         chmod -R 755 /var/www/${vhost};
     fi
@@ -82,6 +113,7 @@ bool="n"
 echo -n "Should I add an entry to the hosts file? ";
 read bool;
 if [[ ${bool} == "y" || ${bool} == "Y" || ${bool} == "yes" || ${bool} == "YES" || ${bool} == "Yes" ]]; then
-    echo "# ${vhost}
-127.0.0.1	${vhost}" >> /etc/hosts
+    echo "# ${vhost}" >> /etc/hosts
+	echo "127.0.0.1	${vhost}" >> /etc/hosts
+	echo "" >> /etc/hosts
 fi
